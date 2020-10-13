@@ -1,0 +1,320 @@
+Description: Setup default VPC architecture with two private and two public subnets.
+
+Parameters:
+  VpcCidr:
+    Description: CIDR block for the VPC
+    Type: String
+  PubSubnetACidr:
+    Type: String
+  PubSubnetBCidr:
+    Type: String
+  AvailabilityZone:
+    Type: CommaDelimitedList
+  PriSubnetACidr:
+    Type: String
+  PriSubnetBCidr:
+    Type: String
+  FlowLogBucketName:
+    Type: String
+
+Resources:
+  # Setup vpc
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      InstanceTenancy: default
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-vpc"
+
+  # pub subnets
+  PubSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Ref PubSubnetACidr
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !Ref AvailabilityZone]
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-pub-subnet-a"
+        - Key: SubnetType
+          Value: Public
+      VpcId: !Ref Vpc
+
+  PubSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Ref PubSubnetBCidr
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !Ref AvailabilityZone]
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-pub-subnet-b"
+        - Key: SubnetType
+          Value: Public
+      VpcId: !Ref Vpc
+
+  # private subnets
+  PriSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !Ref AvailabilityZone]
+      CidrBlock: !Ref PriSubnetACidr
+      VpcId: !Ref Vpc
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-priv-subnet-a"
+        - Key: SubnetType
+          Value: Private
+
+  PriSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !Ref AvailabilityZone]
+      CidrBlock: !Ref PriSubnetBCidr
+      VpcId: !Ref Vpc
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-priv-subnet-b"
+        - Key: SubnetType
+          Value: Private
+
+  # RouteTable:
+  RouteTableIgw:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub rtb-${AWS::StackName}
+      VpcId: !Ref Vpc
+
+  # Subnet route table associations:
+  SubnetRouteTableAssociationA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableIgw
+      SubnetId: !Ref PubSubnetA
+  SubnetRouteTableAssociationB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableIgw
+      SubnetId: !Ref PubSubnetB
+
+  # Internet gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub igw-${AWS::StackName}
+
+  # Add NAT gateway - one per AZ
+  # NatEIPa domain set to vpc to allocate the address for use with instances in a VPC
+  NatEIPa:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-eip-a"
+
+  NatGatewayA:
+    Type: AWS::EC2::NatGateway
+    DependsOn: VpcGatewayAttachment
+    Properties:
+      AllocationId: !GetAtt NatEIPa.AllocationId
+      SubnetId: !Ref PubSubnetA
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-nat-a"
+        - Key: NetworkType
+          Value: Private
+
+  NatRouteA:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref NatRouteTableA
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayA
+
+  NatRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-rtb-nat-a"
+        - Key: NetworkType
+          Value: Private
+      VpcId: !Ref Vpc
+
+  # NAT Gateway and route table AZ b
+  NatEIPb:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-eip-b"
+
+  NatGatewayB:
+    Type: AWS::EC2::NatGateway
+    DependsOn: VpcGatewayAttachment
+    Properties:
+      AllocationId: !GetAtt NatEIPb.AllocationId
+      SubnetId: !Ref PubSubnetB
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-nat-b"
+        - Key: NetworkType
+          Value: Private
+
+  NatRouteB:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref NatRouteTableB
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayB
+
+  NatRouteTableB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-rtb-nat-b"
+        - Key: NetworkType
+          Value: Private
+      VpcId: !Ref Vpc
+
+  # Attaches gateway to VPC
+  VpcGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  # Default Route
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref RouteTableIgw
+      GatewayId:
+        Ref: InternetGateway
+    DependsOn: VpcGatewayAttachment
+
+  # Attach private route table to app subnets
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PriSubnetA
+      RouteTableId: !Ref NatRouteTableA
+
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PriSubnetB
+      RouteTableId: !Ref NatRouteTableB
+
+  # Vpc flow logs
+  VpcFlowLog:
+    Type: AWS::EC2::FlowLog
+    DependsOn: FlowLogBucket
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt VpcFlowLogsRole.Arn
+      LogDestinationType: s3
+      LogDestination: !GetAtt FlowLogBucket.Arn
+      ResourceId: !Ref Vpc
+      ResourceType: VPC
+      TrafficType: ALL
+
+  VpcFlowLogsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - vpc-flow-logs.amazonaws.com
+      Path: "/"
+      Policies:
+        - PolicyName: logging
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - logs:CreateLogDelivery
+                  - logs:DeleteLogDelivery
+                Effect: Allow
+                Resource:
+                  - !GetAtt FlowLogBucket.Arn
+
+  # Create bucket for flow log
+  FlowLogBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref FlowLogBucketName
+      LifecycleConfiguration:
+        Rules:
+          - AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+            Status: Enabled
+          - Id: DeleteEverythingAfterOneYear
+            Prefix: ""
+            Status: Enabled
+            ExpirationInDays: 365
+    DeletionPolicy: Retain
+
+  FlowLogBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FlowLogBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AWSLogDeliveryWrite
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub arn:aws:s3:::${FlowLogBucketName}/*
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+          - Sid: AWSLogDeliveryAclCheck
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !Sub arn:aws:s3:::${FlowLogBucketName}
+
+Outputs:
+  Vpc:
+    Value: !Ref Vpc
+    Export:
+      Name: !Sub ${AWS::StackName}-vpc
+  PubSubnetA:
+    Value: !Ref PubSubnetA
+    Export:
+      Name: !Sub ${AWS::StackName}-pub-subnet-a
+  PubSubnetB:
+    Value: !Ref PubSubnetB
+    Export:
+      Name: !Sub ${AWS::StackName}-pub-subnet-b
+  PriSubnetA:
+    Value: !Ref PriSubnetA
+    Export:
+      Name: !Sub ${AWS::StackName}-pri-subnet-a
+  PriSubnetB:
+    Value: !Ref PriSubnetB
+    Export:
+      Name: !Sub ${AWS::StackName}-pri-subnet-b
