@@ -39,10 +39,8 @@ This template creates the following resources:
 To deploy, update the file `deploy-vpc.sh` with your stack info and run it. 
 
 
-TODO: abstract bash file
+TODO: abstract bash file. It should allow me to deploy the stack running the following command:  
 
-<!-- 
-To deploy, run the following command, replacing strings with your stack info:
 
 ```bash
 export STACK_NAME="Name for your stack"
@@ -56,4 +54,4 @@ export PUB_SUBNET_A_CIDR="your public subnet in AZ B CIDR"
 export PUB_SUBNET_A_CIDR="your private subnet in AZ A CIDR"
 export PUB_SUBNET_A_CIDR="your private subnet in AZ B CIDR"
 ./deploy-vpc-abstracted.sh
-``` -->
+```
