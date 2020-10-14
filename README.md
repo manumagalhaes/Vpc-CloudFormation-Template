@@ -35,24 +35,21 @@ This template creates the following resources:
 
 ## How to deploy
 
-- With tested bash file:
-To deploy, update the file `deploy-vpc.sh` with your stack info and run it. 
+- You can either:
+Update the file `deploy-vpc.sh` with your stack info and run it, or 
 
-
-## TODO
-Abstract bash file. It should allow me to deploy the stack running the following command:  
-
+Run the following command with your relevant data: 
 
 ```bash
-export STACK_NAME="Name for your stack"
-export OWNER="name of team responsible for this stack"
-export COMPLIANCE="Is your stack handling sensitive information?"
-export AWS_DEFAULT_REGION="your region"
+export STACK_NAME="<name must be lower case>"
+export OWNER="<team responsible for this stack>"
+export COMPLIANCE="<true || false>"
+export AWS_DEFAULT_REGION="<region>"
 
-export VPC_CIDR="your VPC CIDR"
-export PUB_SUBNET_A_CIDR="your public subnet in AZ A CIDR"
-export PUB_SUBNET_A_CIDR="your public subnet in AZ B CIDR"
-export PUB_SUBNET_A_CIDR="your private subnet in AZ A CIDR"
-export PUB_SUBNET_A_CIDR="your private subnet in AZ B CIDR"
+export VPC_CIDR="<VPC CIDR>"
+export PUB_SUBNET_A_CIDR="<public subnet A>"
+export PUB_SUBNET_B_CIDR="<public subnet B>"
+export PUB_SUBNET_A_CIDR="<private subnet A>"
+export PUB_SUBNET_B_CIDR="<private subnet B>"
 ./deploy-vpc-abstracted.sh
 ```

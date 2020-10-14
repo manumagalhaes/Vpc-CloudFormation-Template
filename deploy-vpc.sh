@@ -15,11 +15,11 @@ readonly TEMPLATE=$(dirname "${BASH_SOURCE[0]}")/vpc.yml
 readonly BATCH="batch${RANDOM}"
 readonly NOW=$(date +%Y-%m-%dT%H:%M:%S)
 
-readonly STACK_NAME="NAME"
-readonly OWNER="OWNER@EMAIL.COM"
-readonly TAGS=("Name=NAME" "Batch=${BATCH}" "DateCreation=${NOW}" "StackName=${STACK_NAME}" "Compliance=no" "Owner=${OWNER}")
+readonly STACK_NAME="must-be-lower-case"
+readonly OWNER="owner@email.com"
+readonly TAGS=("Name=${STACK_NAME}" "Batch=${BATCH}" "DateCreation=${NOW}" "StackName=${STACK_NAME}" "Compliance=no" "Owner=${OWNER}")
 
-AWS_DEFAULT_REGION="sa-east-1"
+AWS_DEFAULT_REGION="eu-central-1"
 
 # Ensure that the VPC CIDR range is agreed with your network administrator
   readonly VPC_CIDR="10.91.1.0/24"

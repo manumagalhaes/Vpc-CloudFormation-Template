@@ -16,7 +16,7 @@ echo "And oh, ensure that the VPC CIDR range is agreed with your network adminis
 readonly TEMPLATE=$(dirname "${BASH_SOURCE[0]}")/vpc.yml
 readonly BATCH="batch${RANDOM}"
 readonly NOW=$(date +%Y-%m-%dT%H:%M:%S)
-readonly TAGS=("Name=NAME" "Batch=${BATCH}" "DateCreation=${NOW}" "StackName=${STACK_NAME}" "Compliance=${COMPLIANCE}" "Owner=${OWNER}")
+readonly TAGS=("Name=${STACK_NAME}" "Batch=${BATCH}" "DateCreation=${NOW}" "StackName=${STACK_NAME}" "Compliance=${COMPLIANCE}" "Owner=${OWNER}")
 readonly FLOW_LOG_BUCKET_NAME="${STACK_NAME}-flow-log"
 
 AVAILABILITY_ZONE="${AWS_DEFAULT_REGION}a,${AWS_DEFAULT_REGION}b"
