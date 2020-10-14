@@ -35,10 +35,10 @@ This template creates the following resources:
 
 ## How to deploy
 
-- You can either:
-Update the file `deploy-vpc.sh` with your stack info and run it, or 
+You can either:
+- Update the file `deploy-vpc.sh` with your stack info and run it, or 
 
-Run the following command with your relevant data: 
+- Run the following command with your relevant data: 
 
 ```bash
 export STACK_NAME="<name must be lower case>"
